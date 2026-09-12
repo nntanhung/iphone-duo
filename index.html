@@ -18,9 +18,9 @@
       <aside class="screen-panel" aria-label="Screen UI">
         <div class="panel-heading"><h2>Screen UI</h2></div>
         <div class="ui-themes" role="tablist" aria-label="Screen UI type">
-          <button role="tab" data-ui-theme="wallpaper" aria-selected="true" disabled>Wallpaper</button>
-          <button role="tab" data-ui-theme="launcher" aria-selected="false" disabled>Launcher</button>
-          <button role="tab" data-ui-theme="custom" aria-selected="false" disabled>Custom</button>
+          <button role="tab" data-ui-theme="wallpaper" aria-selected="true">Wallpaper</button>
+          <button role="tab" data-ui-theme="launcher" aria-selected="false">Launcher</button>
+          <button role="tab" data-ui-theme="custom" aria-selected="false">Custom</button>
         </div>
         <div id="custom-upload-panel" class="custom-upload-panel" hidden>
           <button id="upload-single" type="button" class="upload-option">Single image<span>Use one image on both screens</span></button>
@@ -28,12 +28,11 @@
             <button id="upload-outer" type="button" class="upload-option">Outer screen<span>Upload outer image</span></button>
             <button id="upload-inner" type="button" class="upload-option">Inner screen<span>Upload inner image</span></button>
           </div>
-          <p class="upload-hint"><strong>Recommended:</strong> inner <b>1600 × 1125 px</b> · outer <b>775 × 1125 px</b>. If only one screen image is uploaded, the other uses the Wallpaper screen.</p>
+          <p class="upload-hint"><strong>Recommended:</strong> inner <b>1600 × 1125 px</b> · outer <b>775 × 1125 px</b>. If only one separate image is uploaded, the other screen keeps its Wallpaper image.</p>
         </div>
-        <input id="ui-upload-single" type="file" accept="image/*" hidden disabled>
-        <input id="ui-upload-inner" type="file" accept="image/*" hidden disabled>
-        <input id="ui-upload-outer" type="file" accept="image/*" hidden disabled>
-        <button id="upload-separate" type="button" hidden tabindex="-1" aria-hidden="true">Separate</button>
+        <input id="ui-upload-single" type="file" accept="image/*" hidden>
+        <input id="ui-upload-inner" type="file" accept="image/*" hidden>
+        <input id="ui-upload-outer" type="file" accept="image/*" hidden>
       </aside>
       <section class="controls" aria-label="Fold animation controls">
         <button id="play" class="play" aria-label="Play animation" disabled><svg id="pause-icon" viewBox="0 0 24 24" hidden><path d="M8 6v12M16 6v12"/></svg><svg id="play-icon" viewBox="0 0 24 24"><path d="m9 5 10 7-10 7Z"/></svg></button>
@@ -41,83 +40,6 @@
       </section>
     </div>
   </main>
-  <script>
-    (() => {
-      const panel = document.querySelector('#custom-upload-panel');
-      const customTab = document.querySelector('[data-ui-theme="custom"]');
-      const singleInput = document.querySelector('#ui-upload-single');
-      const innerInput = document.querySelector('#ui-upload-inner');
-      const outerInput = document.querySelector('#ui-upload-outer');
-      const singleButton = document.querySelector('#upload-single');
-      const innerButton = document.querySelector('#upload-inner');
-      const outerButton = document.querySelector('#upload-outer');
-      let syntheticOuterChange = false;
-      let defaultFiles = {};
-
-      async function loadImage(src) {
-        const image = new Image();
-        image.src = src;
-        await image.decode();
-        return image;
-      }
-      async function makeWallpaperDefault(kind) {
-        if (defaultFiles[kind]) return defaultFiles[kind];
-        const [wallpaper, clock] = await Promise.all([
-          loadImage('./assets/ui/wallpaper-inner.avif'),
-          loadImage(`./assets/ui/clock-${kind}.avif`)
-        ]);
-        const canvas = document.createElement('canvas');
-        canvas.width = kind === 'inner' ? 1600 : 775;
-        canvas.height = 1125;
-        const context = canvas.getContext('2d');
-        if (kind === 'inner') {
-          context.drawImage(wallpaper, 0, 0, 1600, 1125);
-        } else {
-          context.drawImage(wallpaper, wallpaper.width - wallpaper.width * 775 / 1600, 0, wallpaper.width * 775 / 1600, wallpaper.height, 0, 0, 775, 1125);
-        }
-        context.drawImage(clock, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-        defaultFiles[kind] = new File([blob], `wallpaper-${kind}.png`, { type: 'image/png' });
-        return defaultFiles[kind];
-      }
-      function setInputFile(input, file) {
-        const transfer = new DataTransfer();
-        transfer.items.add(file);
-        input.files = transfer.files;
-      }
-      async function applyWithFallback(changedKind) {
-        const fallbackKind = changedKind === 'inner' ? 'outer' : 'inner';
-        const changedInput = changedKind === 'inner' ? innerInput : outerInput;
-        const fallbackInput = fallbackKind === 'inner' ? innerInput : outerInput;
-        if (!changedInput.files[0]) return;
-        if (!fallbackInput.files[0]) setInputFile(fallbackInput, await makeWallpaperDefault(fallbackKind));
-        syntheticOuterChange = true;
-        outerInput.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-
-      customTab.addEventListener('click', event => {
-        event.stopImmediatePropagation();
-        panel.hidden = false;
-      }, true);
-      singleButton.addEventListener('click', () => singleInput.click());
-      outerButton.addEventListener('click', () => outerInput.click());
-      innerButton.addEventListener('click', () => innerInput.click());
-
-      innerInput.addEventListener('change', event => {
-        event.stopImmediatePropagation();
-        applyWithFallback('inner').catch(() => alert('Unable to prepare the default Wallpaper image.'));
-      }, true);
-      outerInput.addEventListener('change', event => {
-        if (syntheticOuterChange) {
-          syntheticOuterChange = false;
-          return;
-        }
-        event.stopImmediatePropagation();
-        applyWithFallback('outer').catch(() => alert('Unable to prepare the default Wallpaper image.'));
-      }, true);
-      document.querySelector('#upload-separate').addEventListener('click', event => event.stopImmediatePropagation(), true);
-    })();
-  </script>
   <script type="module" src="./main.js"></script>
 </body>
 </html>
