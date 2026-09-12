@@ -21,13 +21,21 @@ const SOURCE = 'https://raw.githubusercontent.com/vinhcatba/iphone-duo/978e73eaf
       URL.revokeObjectURL(moduleUrl);
     }
 
-    // Start the default animation automatically once the original module has
-    // finished loading the model and enabled the Play button.
+    // The original animation module starts from the current slider angle.
+    // Force the initial state to 180° (Outer / Folded) before starting so the
+    // first automatic cycle is always Outer -> Inner -> Outer.
     const play = document.querySelector('#play');
+    const angle = document.querySelector('#angle');
     if (play) {
       const start = () => {
-        if (!play.disabled && play.getAttribute('aria-label') !== 'Pause animation') {
-          play.click();
+        if (!play.disabled) {
+          if (angle) {
+            angle.value = '180';
+            angle.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (play.getAttribute('aria-label') !== 'Pause animation') {
+            play.click();
+          }
           return true;
         }
         return false;
