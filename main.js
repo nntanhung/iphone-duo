@@ -301,36 +301,36 @@ vec4 bendStrip(vec3 p) {
   vec2 a = rotateHinge(vec2(-halfWidth, p.z));
   vec2 b = vec2(halfWidth, p.z);
   vec2 ta = 2.0 * halfWidth * vec2(cos(foldAngle), -sin(foldAngle));
-  vec2 tb = vec2(2.0 * halfWidth, 0.0);
-  vec2 point = (2.0*t3-3.0*t2+1.0)*a + (t3-2.0*t2+t)*ta + (-2.0*t3+3.0*t2)*b + (t3-t2)*tb;
-  vec2 tangent = normalize((6.0*t2-6.0*t)*a + (3.0*t2-4.0*t+1.0)*ta + (-6.0*t2+6.0*t)*b + (3.0*t2-2.0*t)*tb);
-  return vec4(point, tangent);
+  vec2 tb = 2.0 * halfWidth * vec2(1.0, 0.0);
+  vec2 curve = (2.0*t3 - 3.0*t2 + 1.0) * a + (t3 - 2.0*t2 + t) * ta
+    + (-2.0*t3 + 3.0*t2) * b + (t3 - t2) * tb;
+  vec2 tangent = (6.0*t2 - 6.0*t) * a + (3.0*t2 - 4.0*t + 1.0) * ta
+    + (-6.0*t2 + 6.0*t) * b + (3.0*t2 - 2.0*t) * tb;
+  float localAngle = atan(tangent.y, tangent.x);
+  return vec4(curve, cos(localAngle), sin(localAngle));
 }
 #endif
 `;
+
 try {
-  const model = await new USDLoader().loadAsync('./assets/iPhone_Duo_Render.usdc');
-  model.scale.multiplyScalar(100);
-  model.updateMatrixWorld(true);
-  const count = { moving: 0, fixed: 0, flexible: 0 };
-  model.traverse(object => {
-    if (!object.isMesh) return;
-    const geometry = object.geometry.clone().applyMatrix4(object.matrixWorld);
-    geometry.translate(0, -5.8974, 0);
-    let ancestor = object;
-    while (ancestor && !['upTUAKvMVkPOMKq', 'SiftyleUEEZwLhF'].includes(ancestor.name)) ancestor = ancestor.parent;
-    const moving = ancestor?.name === 'upTUAKvMVkPOMKq';
-    const flexible = ['JnJdTkxbQgUtLwU', 'xdyyaajWsatVNxN', 'UXtsBZYlaUvHoEh', 'MvKPXGSdYDVvSpk'].includes(object.name);
-    const kind = object.name === 'UXtsBZYlaUvHoEh' ? 'inner' : object.name === 'hhgAIoCGsHXeDPY' ? 'outer' : null;
-    const material = kind ? screens[kind].material : object.material.clone();
+  const loader = new USDLoader();
+  const object = await loader.loadAsync('./assets/iphone-duo.usdz');
+  const count = { flexible: 0, moving: 0, fixed: 0 };
+  object.traverse(mesh => {
+    if (!mesh.isMesh) return;
+    const name = (mesh.name || '').toLowerCase();
+    const moving = /screen|display|glass|hinge|left|right/.test(name);
+    const flexible = /screen|display/.test(name);
+    const kind = /inner/.test(name) ? 'inner' : /outer/.test(name) ? 'outer' : null;
+    const material = mesh.material.clone();
     if (kind) {
-      const p = geometry.attributes.position;
+      const p = mesh.geometry.attributes.position;
       const uv = new Float32Array(p.count * 2);
       for (let i = 0; i < p.count; i++) {
         uv[i * 2] = kind === 'inner' ? (p.getX(i) + 7.89935) / 15.7987 : (-.23396 - p.getX(i)) / 7.73936;
         uv[i * 2 + 1] = kind === 'inner' ? (p.getY(i) + 5.8974 - .34562) / 11.1035 : (p.getY(i) + 5.8974 - .27173) / 11.2513;
       }
-      geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     }
     if (moving || flexible) {
       material.onBeforeCompile = shader => {
@@ -368,8 +368,8 @@ try {
       };
       material.customProgramCacheKey = () => `${flexible ? 'fold-flexible' : 'fold-cover'}-${kind || 'body'}`;
     }
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.name = object.name;
+    const mesh = new THREE.Mesh(mesh.geometry, material);
+    mesh.name = mesh.name;
     mesh.frustumCulled = false;
     phone.add(mesh);
     count[flexible ? 'flexible' : moving ? 'moving' : 'fixed']++;
@@ -379,6 +379,8 @@ try {
   document.querySelectorAll('button, input').forEach(element => element.disabled = false);
   ready = true;
   setAngle(180);
+  phase = 0;
+  setPlaying(true);
 } catch (error) {
   alert('Unable to load the model. Refresh the page to try again.');
   console.error(error);
