@@ -10,17 +10,14 @@ canvas{display:block;outline:none}
 .github-link{position:absolute;top:calc(16px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));z-index:2;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:#262c24;transition:background .2s,color .2s}
 .github-link svg{width:24px;height:24px;fill:currentColor}
 .github-link:hover{background:#ecefe6;color:#4e5e44}
-.floating-control{position:absolute;top:calc(16px + env(safe-area-inset-top));left:calc(16px + env(safe-area-inset-left));z-index:3;width:44px;height:44px;border:1px solid rgba(216,220,210,.8);border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.82);color:#45533b;box-shadow:0 8px 30px -18px #7c8377;backdrop-filter:blur(12px);transition:background .2s,opacity .2s}
-.floating-control:hover{background:#fff}
-.floating-control svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-.control-dock{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);width:min(760px,calc(100% - 56px));display:flex;align-items:center;padding:20px 24px;gap:24px;background:rgba(255,255,255,.86);border:1px solid rgba(216,220,210,.8);border-radius:25px;box-shadow:0 16px 50px -26px #7c83773d;backdrop-filter:blur(16px);transition:opacity .2s,transform .25s}
-.controls{flex:1;min-width:0;display:flex;gap:26px;align-items:center;padding-left:24px;border-left:1px solid #e5e8df}
+.control-dock{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);width:min(820px,calc(100% - 56px));display:flex;align-items:center;padding:20px 24px;gap:24px;background:rgba(255,255,255,.86);border:1px solid rgba(216,220,210,.8);border-radius:25px;box-shadow:0 16px 50px -26px #7c83773d;backdrop-filter:blur(16px);transition:opacity .2s,transform .25s}
+.controls{flex:1;min-width:0;display:flex;gap:18px;align-items:center;padding-left:24px;border-left:1px solid #e5e8df}
 .play{width:48px;height:48px;border-radius:50%;flex-shrink:0;border:0;background:#262c24;color:#f7faf4;display:grid;place-items:center;transition:background .2s}
 .play:hover{background:#4e5e44}
 .play svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .play #play-icon{fill:currentColor;stroke:none}
 .play svg[hidden]{display:none}
-input[type=range]{appearance:none;-webkit-appearance:none;flex:1;min-width:0;width:100%;height:36px;display:block;margin:0;background:transparent;cursor:ew-resize;touch-action:none}
+input[type=range]{appearance:none;-webkit-appearance:none;flex:1;min-width:80px;width:100%;height:36px;display:block;margin:0;background:transparent;cursor:ew-resize;touch-action:none}
 input[type=range]::-webkit-slider-runnable-track{height:9px;background:linear-gradient(to right,#6a795c var(--progress,100%),#e6e9e0 var(--progress,100%));border-radius:9px}
 input[type=range]::-moz-range-track{height:9px;background:linear-gradient(to right,#6a795c var(--progress,100%),#e6e9e0 var(--progress,100%));border-radius:9px}
 input[type=range]::-webkit-slider-thumb{appearance:none;width:24px;height:24px;margin-top:-7.5px;background:#fff;border:3px solid #67775b;border-radius:50%;box-shadow:0 1px 4px #0002}
@@ -41,9 +38,14 @@ button:focus-visible,.github-link:focus-visible{outline:2px solid #8fa077;outlin
 #upload-separate{display:none}
 .export-video{height:42px;padding:0 14px;border:0;border-radius:12px;background:#262c24;color:#f7faf4;font-size:11px;font-weight:600;white-space:nowrap;transition:background .2s}
 .export-video:hover:not(:disabled){background:#4e5e44}
+.hide-controls{height:42px;padding:0 13px;border:1px solid #d9ded4;border-radius:12px;background:#fff;color:#45533b;font-size:11px;font-weight:600;white-space:nowrap;transition:background .2s,border-color .2s}
+.hide-controls:hover{background:#f8faf6;border-color:#cbd2c3}
+.show-controls{position:absolute;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));z-index:4;transform:translate(-50%,14px);opacity:0;pointer-events:none;height:42px;padding:0 18px;border:1px solid rgba(216,220,210,.8);border-radius:14px;background:rgba(255,255,255,.9);color:#45533b;font-size:11px;font-weight:600;box-shadow:0 10px 30px -18px #7c8377;backdrop-filter:blur(14px);transition:opacity .2s,transform .25s}
+.show-controls:hover{background:#fff}
 main.controls-hidden .control-dock{opacity:0;pointer-events:none;transform:translate(-50%,16px)}
 main.controls-hidden #viewport{inset:0}
 main.controls-hidden .github-link{opacity:0;pointer-events:none}
+main.controls-hidden .show-controls{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
 @media(max-width:700px){
   .control-dock{width:calc(100% - 32px);bottom:calc(16px + env(safe-area-inset-bottom));padding:16px;gap:16px;flex-direction:column;align-items:stretch}
   .screen-panel{width:auto}
@@ -53,9 +55,11 @@ main.controls-hidden .github-link{opacity:0;pointer-events:none}
   .upload-option span{font-size:10px}
   .upload-hint{font-size:9px}
   #viewport{inset:env(safe-area-inset-top) 0 calc(220px + env(safe-area-inset-bottom))}
-  .controls{flex:none;gap:16px;padding:16px 0 0;border-left:0;border-top:1px solid #e5e8df}
+  .controls{flex:none;gap:12px;padding:16px 0 0;border-left:0;border-top:1px solid #e5e8df;flex-wrap:wrap}
   .play{width:44px;height:44px}
-  .export-video{height:44px}
+  .export-video,.hide-controls{height:44px}
+  .controls input[type=range]{order:2;flex-basis:100%}
+  .show-controls{bottom:calc(16px + env(safe-area-inset-bottom))}
 }
 @media(max-height:650px) and (min-width:701px){
   #viewport{inset:0 0 125px}
@@ -64,7 +68,8 @@ main.controls-hidden .github-link{opacity:0;pointer-events:none}
 @media(max-height:500px) and (min-width:540px){
   .control-dock{bottom:calc(12px + env(safe-area-inset-bottom));padding:14px 18px;gap:18px;flex-direction:row;align-items:center}
   .screen-panel{width:180px}
-  .controls{flex:1;gap:16px;padding:0 0 0 18px;border-top:0;border-left:1px solid #e5e8df}
+  .controls{flex:1;gap:12px;padding:0 0 0 18px;border-top:0;border-left:1px solid #e5e8df;flex-wrap:nowrap}
+  .controls input[type=range]{order:0}
   .ui-themes button{min-height:36px}
   #viewport{inset:env(safe-area-inset-top) 0 calc(140px + env(safe-area-inset-bottom))}
 }
