@@ -24,7 +24,10 @@
         </div>
         <div id="custom-upload-panel" class="custom-upload-panel" hidden>
           <button id="upload-single" type="button" class="upload-option">Single image<span>Use one image on both screens</span></button>
-          <button id="upload-separate" type="button" class="upload-option">Separate images<span>Outer + inner screen</span></button>
+          <div class="separate-upload-group">
+            <button id="upload-outer" type="button" class="upload-option">Outer screen<span>Upload outer image</span></button>
+            <button id="upload-inner" type="button" class="upload-option">Inner screen<span>Upload inner image</span></button>
+          </div>
           <p class="upload-hint"><strong>Recommended:</strong> inner <b>1600 × 1125 px</b> · outer <b>775 × 1125 px</b>.</p>
         </div>
         <input id="ui-upload-single" type="file" accept="image/*" hidden disabled>
@@ -37,12 +40,6 @@
       </section>
     </div>
   </main>
-  <script>
-    document.querySelector('[data-ui-theme="custom"]').addEventListener('click', event => {
-      event.stopImmediatePropagation();
-      document.querySelector('#custom-upload-panel').hidden = false;
-    }, true);
-  </script>
   <script type="module" src="./main.js"></script>
 </body>
 </html>
