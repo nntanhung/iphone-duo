@@ -9,7 +9,7 @@ A browser-based study of foldable screen transitions, built with Three.js.
 - Only the cover half rotates; the rear-camera half stays fixed.
 - Screen content uses a fixed front-view projection during folding. The outer UI stays aligned with its hinge-side left edge.
 - Blur and darkening follow the image coordinates, including the image edges. Maximum blur radius is 72 source pixels; darkening uses twice the transition strength, capped at black.
-- Wallpaper, Launcher, and Custom modes. Custom opens the image picker directly and applies one image to both screens; the outer screen shows the image's right half.
+- Wallpaper, Launcher, and Custom modes. Custom lets the user either use one image for both screens or upload separate images for the outer and inner screens.
 - Drag to orbit, scroll to zoom, or use the play button and slider to fold the device.
 - Responsive controls for desktop and mobile. Uploaded images stay in the current browser tab.
 
@@ -37,7 +37,14 @@ The preparation script downloads the original Star White USDZ and UI images from
 
 ## Screen controls
 
-Choose **Wallpaper** or **Launcher** for the default screen layouts. Choose **Custom** to select an image. The inner screen contains the whole image; the outer screen crops to the right-hand portion and aligns that portion to its left edge. Recommended image size: 2670 × 1878.
+Choose **Wallpaper** or **Launcher** for the default screen layouts. Choose **Custom** to choose between **Single image** and **Separate images**.
+
+- **Single image:** upload one image and use it on both screens, preserving the previous custom-image behavior.
+- **Separate images:** upload one image for the outer screen and one for the inner screen.
+- **Inner screen:** recommended **1600 × 1125 px**.
+- **Outer screen:** recommended **775 × 1125 px**.
+
+These dimensions match the screen projection aspect ratios used by the 3D model. Other image sizes are accepted and will be fitted to the target screen.
 
 The slider controls the fold from closed to open. The default view is fully open and paused. The outer screen turns off at full opening.
 
