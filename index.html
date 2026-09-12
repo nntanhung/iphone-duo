@@ -37,6 +37,12 @@
       </section>
     </div>
   </main>
+  <script>
+    document.querySelector('[data-ui-theme="custom"]').addEventListener('click', event => {
+      event.stopImmediatePropagation();
+      document.querySelector('#custom-upload-panel').hidden = false;
+    }, true);
+  </script>
   <script type="module" src="./main.js"></script>
 </body>
 </html>
