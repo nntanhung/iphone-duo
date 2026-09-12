@@ -57,6 +57,7 @@ uiCanvas.height = 1125;
 const uiTexture = new THREE.CanvasTexture(uiCanvas);
 uiTexture.colorSpace = THREE.SRGBColorSpace;
 uiTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const customTextures = { inner: null, outer: null };
 for (const kind of ['inner', 'outer']) {
   const defaultTextures = {};
   for (const [theme, canvases] of Object.entries(defaultUIs)) {
@@ -77,7 +78,6 @@ const uiInput = document.querySelector('#ui-upload-single');
 const uiInnerInput = document.querySelector('#ui-upload-inner');
 const uiOuterInput = document.querySelector('#ui-upload-outer');
 const customPanel = document.querySelector('#custom-upload-panel');
-let customMode = 'single';
 
 function updateCustomSelection() {
   document.querySelectorAll('[data-ui-theme]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.uiTheme === uiTheme)));
@@ -104,6 +104,7 @@ async function readImage(file) {
 }
 function setCustomTexture(texture, width, height, kind) {
   screens[kind].material.map = texture;
+  screens[kind].material.needsUpdate = true;
   screens[kind].pixel.value.set(1 / width, 1 / height);
   screens[kind].frame.value.copy(kind === 'inner' ? innerUIFrame : outerUIFrame);
   screens[kind].gradient.value.set(kind === 'inner' ? .5 : 0, kind === 'inner' ? 0 : 1);
@@ -112,39 +113,33 @@ async function applySingleImage(file) {
   const img = await readImage(file);
   fitImageToCanvas(img, uiCanvas);
   uiTexture.needsUpdate = true;
+  customTextures.inner = uiTexture;
+  customTextures.outer = uiTexture;
   setCustomTexture(uiTexture, uiCanvas.width, uiCanvas.height, 'inner');
   setCustomTexture(uiTexture, uiCanvas.width, uiCanvas.height, 'outer');
   uiTheme = 'custom';
-  customMode = 'single';
   updateCustomSelection();
+  customPanel.hidden = false;
   setPlaying(false);
   transition = { from: angle, to: 180, elapsed: 0 };
 }
-async function applySeparateImages(innerFile, outerFile) {
-  const [innerImg, outerImg] = await Promise.all([readImage(innerFile), readImage(outerFile)]);
-  const innerCanvas = document.createElement('canvas');
-  innerCanvas.width = 1600;
-  innerCanvas.height = 1125;
-  const outerCanvas = document.createElement('canvas');
-  outerCanvas.width = 775;
-  outerCanvas.height = 1125;
-  fitImageToCanvas(innerImg, innerCanvas);
-  fitImageToCanvas(outerImg, outerCanvas);
-  const innerTexture = new THREE.CanvasTexture(innerCanvas);
-  const outerTexture = new THREE.CanvasTexture(outerCanvas);
-  for (const texture of [innerTexture, outerTexture]) {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  }
-  setCustomTexture(innerTexture, innerCanvas.width, innerCanvas.height, 'inner');
-  setCustomTexture(outerTexture, outerCanvas.width, outerCanvas.height, 'outer');
+async function applySeparateImage(file, kind) {
+  const img = await readImage(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = kind === 'inner' ? 1600 : 775;
+  canvas.height = 1125;
+  fitImageToCanvas(img, canvas);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  customTextures[kind] = texture;
+  setCustomTexture(texture, canvas.width, canvas.height, kind);
   uiTheme = 'custom';
-  customMode = 'separate';
   updateCustomSelection();
+  customPanel.hidden = false;
   setPlaying(false);
   transition = { from: angle, to: 180, elapsed: 0 };
 }
-
 uiInput.addEventListener('change', async () => {
   const file = uiInput.files[0];
   if (!file) return;
@@ -152,43 +147,52 @@ uiInput.addEventListener('change', async () => {
   catch { alert('Unable to read this image. Choose a PNG, JPG, or WebP file.'); }
   finally { uiInput.value = ''; }
 });
-
-async function chooseSeparateImages() {
-  uiInnerInput.click();
-}
-uiInnerInput.addEventListener('change', () => {
-  if (uiInnerInput.files[0]) uiOuterInput.click();
+uiInnerInput.addEventListener('change', async () => {
+  const file = uiInnerInput.files[0];
+  if (!file) return;
+  try { await applySeparateImage(file, 'inner'); }
+  catch { alert('Unable to read this image. Choose a PNG, JPG, or WebP file.'); }
+  finally { uiInnerInput.value = ''; }
 });
 uiOuterInput.addEventListener('change', async () => {
-  const innerFile = uiInnerInput.files[0];
-  const outerFile = uiOuterInput.files[0];
-  if (!innerFile || !outerFile) return;
-  try { await applySeparateImages(innerFile, outerFile); }
-  catch { alert('Unable to read one of the images. Choose PNG, JPG, or WebP files.'); }
-  finally { uiInnerInput.value = ''; uiOuterInput.value = ''; }
+  const file = uiOuterInput.files[0];
+  if (!file) return;
+  try { await applySeparateImage(file, 'outer'); }
+  catch { alert('Unable to read this image. Choose a PNG, JPG, or WebP file.'); }
+  finally { uiOuterInput.value = ''; }
 });
-
 document.querySelector('#upload-single').addEventListener('click', () => uiInput.click());
-document.querySelector('#upload-separate').addEventListener('click', chooseSeparateImages);
+document.querySelector('#upload-inner').addEventListener('click', () => uiInnerInput.click());
+document.querySelector('#upload-outer').addEventListener('click', () => uiOuterInput.click());
 
 function showDefaultUI() {
   for (const [kind, screen] of Object.entries(screens)) {
     const texture = screen.defaultTextures[uiTheme];
     screen.material.map = texture;
+    screen.material.needsUpdate = true;
     screen.pixel.value.set(1 / texture.image.width, 1 / texture.image.height);
     screen.frame.value.copy(kind === 'inner' ? innerUIFrame : outerUIFrame);
     screen.gradient.value.set(kind === 'inner' ? .5 : 0, kind === 'inner' ? 0 : 1);
   }
   updateCustomSelection();
 }
+function showCustomUI() {
+  for (const [kind, screen] of Object.entries(screens)) {
+    const texture = customTextures[kind] || screen.defaultTextures.wallpaper;
+    setCustomTexture(texture, texture.image.width, texture.image.height, kind);
+  }
+  updateCustomSelection();
+}
 document.querySelectorAll('[data-ui-theme]').forEach(button => button.addEventListener('click', () => {
-  if (button.dataset.uiTheme === 'custom') {
-    customPanel.hidden = !customPanel.hidden;
-    if (!customPanel.hidden && customMode === 'single') uiInput.click();
+  const theme = button.dataset.uiTheme;
+  if (theme === 'custom') {
+    uiTheme = 'custom';
+    customPanel.hidden = false;
+    showCustomUI();
     return;
   }
   customPanel.hidden = true;
-  uiTheme = button.dataset.uiTheme;
+  uiTheme = theme;
   showDefaultUI();
 }));
 
