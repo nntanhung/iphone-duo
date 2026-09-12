@@ -29,11 +29,19 @@ button:focus-visible,.github-link:focus-visible{outline:2px solid #8fa077;outlin
 .ui-themes{display:flex;gap:4px;padding:3px;background:#ecefe6;border-radius:9px}
 .ui-themes button{flex:1;border:0;border-radius:6px;padding:7px 4px;font-size:10px;color:#818974;background:transparent}
 .ui-themes button[aria-selected=true]{background:#fff;color:#45533b;box-shadow:0 1px 3px #53624712}
+.custom-upload-panel{display:grid;gap:6px;margin-top:8px;padding:8px;background:#ecefe6;border-radius:10px}
+.upload-option{border:1px solid #dde1d8;border-radius:8px;padding:8px 9px;text-align:left;background:#fff;color:#45533b;font-size:11px;line-height:1.2}
+.upload-option:hover{background:#f8faf6;border-color:#cbd2c3}
+.upload-option span{display:block;margin-top:3px;color:#818974;font-size:9px}
+.upload-hint{margin:2px 3px 0;color:#72796b;font-size:9px;line-height:1.35}
 @media(max-width:700px){
   .control-dock{width:calc(100% - 32px);bottom:calc(16px + env(safe-area-inset-bottom));padding:16px;gap:16px;flex-direction:column;align-items:stretch}
   .screen-panel{width:auto}
   .panel-heading{margin-bottom:8px}
   .ui-themes button{min-height:40px;font-size:12px}
+  .upload-option{min-height:42px;font-size:12px}
+  .upload-option span{font-size:10px}
+  .upload-hint{font-size:10px}
   #viewport{inset:env(safe-area-inset-top) 0 calc(220px + env(safe-area-inset-bottom))}
   .controls{flex:none;gap:16px;padding:16px 0 0;border-left:0;border-top:1px solid #e5e8df}
   .play{width:44px;height:44px}
