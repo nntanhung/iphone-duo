@@ -11,8 +11,11 @@
 <body>
   <main>
     <div id="viewport" aria-label="iPhone Duo 3D model. Drag to rotate, scroll to zoom."></div>
+    <button id="toggle-controls" class="floating-control" type="button" aria-label="Hide controls" title="Hide controls">
+      <svg id="hide-controls-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 12h16M4 16h16"/></svg>
+    </button>
     <a class="github-link" href="https://github.com/jadon7/iphone-duo" target="_blank" rel="noopener noreferrer" aria-label="View project on GitHub" title="GitHub">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.853.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
     </a>
     <div class="control-dock">
       <aside class="screen-panel" aria-label="Screen UI">
@@ -37,9 +40,104 @@
       <section class="controls" aria-label="Fold animation controls">
         <button id="play" class="play" aria-label="Play animation" disabled><svg id="pause-icon" viewBox="0 0 24 24" hidden><path d="M8 6v12M16 6v12"/></svg><svg id="play-icon" viewBox="0 0 24 24"><path d="m9 5 10 7-10 7Z"/></svg></button>
         <input id="angle" aria-label="Fold progress" type="range" min="0" max="180" value="180" step="0.1" disabled>
+        <button id="export-video" class="export-video" type="button" disabled>Export video</button>
       </section>
     </div>
   </main>
   <script type="module" src="./main.js"></script>
+  <script>
+    (() => {
+      const main = document.querySelector('main');
+      const toggle = document.querySelector('#toggle-controls');
+      const dock = document.querySelector('.control-dock');
+      const play = document.querySelector('#play');
+      const angle = document.querySelector('#angle');
+      const exportButton = document.querySelector('#export-video');
+      const viewport = document.querySelector('#viewport');
+
+      toggle.addEventListener('click', () => {
+        const hidden = main.classList.toggle('controls-hidden');
+        toggle.setAttribute('aria-label', hidden ? 'Show controls' : 'Hide controls');
+        toggle.setAttribute('title', hidden ? 'Show controls' : 'Hide controls');
+      });
+
+      function waitForReady() {
+        return new Promise(resolve => {
+          if (!play.disabled) return resolve();
+          const timer = setInterval(() => {
+            if (!play.disabled) {
+              clearInterval(timer);
+              resolve();
+            }
+          }, 100);
+        });
+      }
+
+      function chooseMimeType() {
+        const types = [
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm'
+        ];
+        return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
+      }
+
+      exportButton.addEventListener('click', async () => {
+        if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
+          alert('Video export is not supported by this browser. Try the latest Chrome, Edge, or Firefox.');
+          return;
+        }
+        if (exportButton.dataset.exporting === 'true') return;
+        exportButton.dataset.exporting = 'true';
+        exportButton.disabled = true;
+        const previousLabel = exportButton.textContent;
+        exportButton.textContent = 'Exporting…';
+
+        try {
+          await waitForReady();
+          const canvas = viewport.querySelector('canvas');
+          if (!canvas) throw new Error('Animation canvas is not ready.');
+          const mimeType = chooseMimeType();
+          const stream = canvas.captureStream(60);
+          const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+          const chunks = [];
+          recorder.ondataavailable = event => {
+            if (event.data.size) chunks.push(event.data);
+          };
+          const stopped = new Promise((resolve, reject) => {
+            recorder.addEventListener('stop', resolve, { once: true });
+            recorder.addEventListener('error', reject, { once: true });
+          });
+
+          angle.value = '180';
+          angle.dispatchEvent(new Event('input', { bubbles: true }));
+          if (play.getAttribute('aria-label') !== 'Pause animation') play.click();
+          recorder.start(100);
+
+          await new Promise(resolve => setTimeout(resolve, 8700));
+          if (play.getAttribute('aria-label') === 'Pause animation') play.click();
+          recorder.stop();
+          await stopped;
+
+          const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `iphone-duo-animation-${new Date().toISOString().slice(0, 10)}.webm`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          console.error('Video export failed', error);
+          alert('Unable to export the animation video.');
+        } finally {
+          exportButton.dataset.exporting = 'false';
+          exportButton.disabled = false;
+          exportButton.textContent = previousLabel;
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
