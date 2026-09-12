@@ -14,7 +14,7 @@ A browser-based study of foldable screen transitions, built with Three.js.
 >
 > See the sections below for the current controls, source layout, and deployment details.
 
-[Live demo](https://iphone-duo-tawny.vercel.app/)
+[Live demo (forked version)](https://iphone-duo-mu.vercel.app/)
 
 ## Features
 
