@@ -2,6 +2,23 @@
 
 A browser-based study of foldable screen transitions, built with Three.js.
 
+> **Key changes from the original fork**
+>
+> This project is based on the original [`jadon7/iphone-duo`](https://github.com/jadon7/iphone-duo) fork, with the following changes:
+>
+> - Added **Wallpaper, Launcher, and Custom** screen modes.
+> - Added **custom screen image uploads**, including separate images for the outer and inner screens.
+> - Added persistent custom-image handling within the current browser tab, with sensible fallback behavior when only one custom image is supplied.
+> - Added **projected front-view screen rendering** that keeps screen content aligned to the hinge-side edge during folding.
+> - Added image-coordinate **blur and darkening** effects that follow the projected screen content during the transition.
+> - Added responsive **desktop and mobile controls**, including the fold slider, playback controls, and screen-mode controls.
+> - Added **Full HD (1920 × 1080) recording at 60 fps**, with an 8.6-second WebM animation export.
+> - Changed the default animation direction to follow the slider's `--progress` mapping: **0% = Outer / fully folded → 100% = Inner / fully unfolded → 0% = Outer / fully folded**.
+> - Changed the initial animation state to **Outer / fully folded** and made the demo autoplay through the complete Outer → Inner → Outer cycle.
+> - Added a local Three.js/vendor setup and Vercel asset-preparation workflow so the project can be deployed as a static site without committing Apple's reference assets.
+>
+> See the sections below for the current controls, source layout, and deployment details.
+
 [Live demo](https://iphone-duo-tawny.vercel.app/)
 
 ## Features
