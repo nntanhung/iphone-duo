@@ -12,7 +12,7 @@
   <main>
     <div id="viewport" aria-label="iPhone Duo 3D model. Drag to rotate, scroll to zoom."></div>
     <a class="github-link" href="https://github.com/jadon7/iphone-duo" target="_blank" rel="noopener noreferrer" aria-label="View project on GitHub" title="GitHub">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144 0.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"/></svg>
     </a>
     <div class="control-dock">
       <aside class="screen-panel" aria-label="Screen UI">
@@ -131,7 +131,28 @@
             };
             requestAnimationFrame(draw);
           });
+
+          // Hold the final Outer / 0% frame for one additional second.
+          // Pause playback at the exact cycle end so the next loop cannot
+          // start during the still-frame portion of the recording.
           if (play.getAttribute('aria-label') === 'Pause animation') play.click();
+          angle.value = '0';
+          angle.dispatchEvent(new Event('input', { bubbles: true }));
+          const stillStart = performance.now();
+          await new Promise(resolve => {
+            const drawStill = now => {
+              context.fillStyle = '#f6f6f3';
+              context.fillRect(0, 0, 1920, 1080);
+              const scale = Math.max(1920 / source.width, 1080 / source.height);
+              const width = source.width * scale;
+              const height = source.height * scale;
+              context.drawImage(source, (1920 - width) / 2, (1080 - height) / 2, width, height);
+              if (now - stillStart < 1000) requestAnimationFrame(drawStill);
+              else resolve();
+            };
+            requestAnimationFrame(drawStill);
+          });
+
           recorder.stop();
           await stopped;
 
