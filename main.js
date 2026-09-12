@@ -73,39 +73,104 @@ for (const kind of ['inner', 'outer']) {
     pixel: { value: new THREE.Vector2(1 / defaultUIs[uiTheme][kind].width, 1 / defaultUIs[uiTheme][kind].height) },
   };
 }
-const uiInput = document.querySelector('#ui-upload');
-uiInput.addEventListener('change', async () => {
-  const file = uiInput.files[0];
-  if (!file) return;
+const uiInput = document.querySelector('#ui-upload-single');
+const uiInnerInput = document.querySelector('#ui-upload-inner');
+const uiOuterInput = document.querySelector('#ui-upload-outer');
+const customPanel = document.querySelector('#custom-upload-panel');
+let customMode = 'single';
+
+function updateCustomSelection() {
+  document.querySelectorAll('[data-ui-theme]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.uiTheme === uiTheme)));
+}
+function fitImageToCanvas(img, canvas) {
+  const c = canvas.getContext('2d');
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.fillStyle = '#101418';
+  c.fillRect(0, 0, canvas.width, canvas.height);
+  const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+  const width = img.width * scale, height = img.height * scale;
+  c.drawImage(img, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
+}
+async function readImage(file) {
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.src = url;
   try {
     await img.decode();
-    const c = uiCanvas.getContext('2d');
-    c.fillStyle = '#101418';
-    c.fillRect(0, 0, uiCanvas.width, uiCanvas.height);
-    const scale = Math.min(uiCanvas.width / img.width, uiCanvas.height / img.height);
-    const width = img.width * scale, height = img.height * scale;
-    c.drawImage(img, (uiCanvas.width - width) / 2, (uiCanvas.height - height) / 2, width, height);
-    uiTexture.needsUpdate = true;
-    for (const [kind, screen] of Object.entries(screens)) {
-      screen.material.map = uiTexture;
-      screen.pixel.value.set(1 / uiCanvas.width, 1 / uiCanvas.height);
-      screen.frame.value.copy(innerUIFrame);
-      screen.gradient.value.set(.5, kind === 'inner' ? 0 : 1);
-    }
-    uiTheme = 'custom';
-    document.querySelectorAll('[data-ui-theme]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.uiTheme === uiTheme)));
-    setPlaying(false);
-    transition = { from: angle, to: 180, elapsed: 0 };
-  } catch {
-    alert('Unable to read this image. Choose a PNG, JPG, or WebP file.');
+    return img;
   } finally {
     URL.revokeObjectURL(url);
-    uiInput.value = '';
   }
+}
+function setCustomTexture(texture, width, height, kind) {
+  screens[kind].material.map = texture;
+  screens[kind].pixel.value.set(1 / width, 1 / height);
+  screens[kind].frame.value.copy(kind === 'inner' ? innerUIFrame : outerUIFrame);
+  screens[kind].gradient.value.set(kind === 'inner' ? .5 : 0, kind === 'inner' ? 0 : 1);
+}
+async function applySingleImage(file) {
+  const img = await readImage(file);
+  fitImageToCanvas(img, uiCanvas);
+  uiTexture.needsUpdate = true;
+  setCustomTexture(uiTexture, uiCanvas.width, uiCanvas.height, 'inner');
+  setCustomTexture(uiTexture, uiCanvas.width, uiCanvas.height, 'outer');
+  uiTheme = 'custom';
+  customMode = 'single';
+  updateCustomSelection();
+  setPlaying(false);
+  transition = { from: angle, to: 180, elapsed: 0 };
+}
+async function applySeparateImages(innerFile, outerFile) {
+  const [innerImg, outerImg] = await Promise.all([readImage(innerFile), readImage(outerFile)]);
+  const innerCanvas = document.createElement('canvas');
+  innerCanvas.width = 1600;
+  innerCanvas.height = 1125;
+  const outerCanvas = document.createElement('canvas');
+  outerCanvas.width = 775;
+  outerCanvas.height = 1125;
+  fitImageToCanvas(innerImg, innerCanvas);
+  fitImageToCanvas(outerImg, outerCanvas);
+  const innerTexture = new THREE.CanvasTexture(innerCanvas);
+  const outerTexture = new THREE.CanvasTexture(outerCanvas);
+  for (const texture of [innerTexture, outerTexture]) {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  }
+  setCustomTexture(innerTexture, innerCanvas.width, innerCanvas.height, 'inner');
+  setCustomTexture(outerTexture, outerCanvas.width, outerCanvas.height, 'outer');
+  uiTheme = 'custom';
+  customMode = 'separate';
+  updateCustomSelection();
+  setPlaying(false);
+  transition = { from: angle, to: 180, elapsed: 0 };
+}
+
+uiInput.addEventListener('change', async () => {
+  const file = uiInput.files[0];
+  if (!file) return;
+  try { await applySingleImage(file); }
+  catch { alert('Unable to read this image. Choose a PNG, JPG, or WebP file.'); }
+  finally { uiInput.value = ''; }
 });
+
+async function chooseSeparateImages() {
+  uiInnerInput.click();
+}
+uiInnerInput.addEventListener('change', () => {
+  if (uiInnerInput.files[0]) uiOuterInput.click();
+});
+uiOuterInput.addEventListener('change', async () => {
+  const innerFile = uiInnerInput.files[0];
+  const outerFile = uiOuterInput.files[0];
+  if (!innerFile || !outerFile) return;
+  try { await applySeparateImages(innerFile, outerFile); }
+  catch { alert('Unable to read one of the images. Choose PNG, JPG, or WebP files.'); }
+  finally { uiInnerInput.value = ''; uiOuterInput.value = ''; }
+});
+
+document.querySelector('#upload-single').addEventListener('click', () => uiInput.click());
+document.querySelector('#upload-separate').addEventListener('click', chooseSeparateImages);
+
 function showDefaultUI() {
   for (const [kind, screen] of Object.entries(screens)) {
     const texture = screen.defaultTextures[uiTheme];
@@ -114,13 +179,15 @@ function showDefaultUI() {
     screen.frame.value.copy(kind === 'inner' ? innerUIFrame : outerUIFrame);
     screen.gradient.value.set(kind === 'inner' ? .5 : 0, kind === 'inner' ? 0 : 1);
   }
-  document.querySelectorAll('[data-ui-theme]').forEach(button => button.setAttribute('aria-selected', String(button.dataset.uiTheme === uiTheme)));
+  updateCustomSelection();
 }
 document.querySelectorAll('[data-ui-theme]').forEach(button => button.addEventListener('click', () => {
   if (button.dataset.uiTheme === 'custom') {
-    uiInput.click();
+    customPanel.hidden = !customPanel.hidden;
+    if (!customPanel.hidden && customMode === 'single') uiInput.click();
     return;
   }
+  customPanel.hidden = true;
   uiTheme = button.dataset.uiTheme;
   showDefaultUI();
 }));
@@ -166,14 +233,12 @@ uniform vec2 uiGradient;
 uniform vec3 uiReferenceEye;
 varying vec3 vUIPosition;
 vec3 screenColor() {
-  // Intersect the fixed front-view ray with the unfolded inner-screen plane.
   float depth = (0.24948 - uiReferenceEye.z) / (vUIPosition.z - uiReferenceEye.z);
   vec2 projected = uiReferenceEye.xy + (vUIPosition.xy - uiReferenceEye.xy) * depth;
   vec2 sourceUV = (projected - uiFrame.xy) / uiFrame.zw;
   #ifdef INNER_UI
     float progress = clamp(foldAngle / 1.570796327, 0.0, 1.0);
   #else
-    // Anchor the image to the projected hinge-side edge of the outer screen.
     float c = cos(foldAngle), s = sin(foldAngle);
     vec2 hingeEdge = vec2(-0.23396, -0.27463 - 0.275454);
     vec2 foldedEdge = vec2(c * hingeEdge.x + s * hingeEdge.y,
@@ -197,7 +262,6 @@ vec3 screenColor() {
     * (1.0 - smoothstep(vec2(1.0) - aa, vec2(1.0) + aa, sourceUV));
   vec3 color = textureLod(map, clamp(sourceUV, vec2(0.0), vec2(1.0)), baseLod).rgb * coverage.x * coverage.y;
   if (radius > 0.0) {
-    // Use the same mip level at zero blur, then increase it continuously.
     float lod = max(baseLod, log2(max(1.0, radius)));
     vec2 footprint = max(aa, uiPixel * radius * 0.75);
     color = vec3(0.0);
@@ -206,7 +270,6 @@ vec3 screenColor() {
         float wx = x == 0 ? 6.0 : (abs(x) == 1 ? 4.0 : 1.0);
         float wy = y == 0 ? 6.0 : (abs(y) == 1 ? 4.0 : 1.0);
         vec2 sampleUV = sourceUV + vec2(float(x), float(y)) * uiPixel * radius;
-        // Blur the image and its coverage together so color spreads into the black margin.
         vec2 coverage = smoothstep(-footprint, footprint, sampleUV)
           * (1.0 - smoothstep(vec2(1.0) - footprint, vec2(1.0) + footprint, sampleUV));
         color += textureLod(map, clamp(sampleUV, vec2(0.0), vec2(1.0)), lod).rgb
@@ -217,8 +280,6 @@ vec3 screenColor() {
   return color * (1.0 - min(1.0, effect * 2.0));
 }
 `;
-
-// The camera half stays in its original transform. Only the cover half rotates.
 const foldShader = `
 uniform float foldAngle;
 vec2 rotateHinge(vec2 p) {
