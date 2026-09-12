@@ -13,6 +13,45 @@ const SOURCE = 'https://raw.githubusercontent.com/vinhcatba/iphone-duo/978e73eaf
       .replaceAll("from './ui.js'", `from '${origin}/ui.js'`)
       .replaceAll("'./assets/", `'${origin}/assets/`);
 
+    // Slider mapping: 0% progress = Outer / fully folded,
+    // 100% progress = Inner / fully unfolded.
+    // Reverse the original animation curve so the automatic cycle is
+    // Outer -> Inner -> Outer.
+    source = source.replace(
+      `if (ready && playing) {
+    phase = (phase + delta) % 8.6;
+    let value;
+    if (phase < 1.2) value = 180;
+    else if (phase < 4.3) value = 90 * (1 + Math.cos((phase - 1.2) / 3.1 * Math.PI));
+    else if (phase < 5.5) value = 0;
+    else value = 90 * (1 - Math.cos((phase - 5.5) / 3.1 * Math.PI));
+    setAngle(value);
+  }`,
+      `if (ready && playing) {
+    phase = (phase + delta) % 8.6;
+    let value;
+    if (phase < 1.2) value = 0;
+    else if (phase < 4.3) value = 90 * (1 - Math.cos((phase - 1.2) / 3.1 * Math.PI));
+    else if (phase < 5.5) value = 180;
+    else value = 90 * (1 + Math.cos((phase - 5.5) / 3.1 * Math.PI));
+    setAngle(value);
+  }`
+    );
+
+    // Keep manual Play behavior, but let the initial automatic start begin
+    // exactly at phase 0 so the first 1.2s is the fully folded Outer state.
+    source = source.replace(
+      `if (!playing) phase = 1.2 + Math.acos(2 * angle / 180 - 1) / Math.PI * 3.1;`,
+      `if (!playing) {
+    phase = window.__iphoneDuoAutoStart ? 0 : 1.2 + Math.acos(2 * angle / 180 - 1) / Math.PI * 3.1;
+    window.__iphoneDuoAutoStart = false;
+  }`
+    );
+
+    // The source normally initializes to 180°. Use 0° so the slider and
+    // rendered model start at Outer / fully folded.
+    source = source.replace('setAngle(180);', 'setAngle(0);');
+
     const blob = new Blob([source], { type: 'text/javascript' });
     const moduleUrl = URL.createObjectURL(blob);
     try {
@@ -21,18 +60,11 @@ const SOURCE = 'https://raw.githubusercontent.com/vinhcatba/iphone-duo/978e73eaf
       URL.revokeObjectURL(moduleUrl);
     }
 
-    // The original animation module starts from the current slider angle.
-    // Force the initial state to 180° (Outer / Folded) before starting so the
-    // first automatic cycle is always Outer -> Inner -> Outer.
     const play = document.querySelector('#play');
-    const angle = document.querySelector('#angle');
     if (play) {
       const start = () => {
         if (!play.disabled) {
-          if (angle) {
-            angle.value = '180';
-            angle.dispatchEvent(new Event('input', { bubbles: true }));
-          }
+          window.__iphoneDuoAutoStart = true;
           if (play.getAttribute('aria-label') !== 'Pause animation') {
             play.click();
           }
